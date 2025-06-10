@@ -1,3 +1,12 @@
-Flask
+flask
 requests
-gunicorn
+moviepy
+opencv-python
+pytesseract
+Pillow
+beautifulsoup4
+google-api-python-client
+youtube-search-python
+
+
+
