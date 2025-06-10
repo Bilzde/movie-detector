@@ -1,134 +1,31 @@
-<!-- templates/index.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Movie Detector - By Bilal Abdi</title>
-    <style>
-        :root {
-            --primary: #4285F4;
-            --dark: #202124;
-        }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            color: var(--dark);
-        }
-        .tab-container {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-        }
-        .tab.active {
-            border-color: var(--primary);
-            font-weight: bold;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .founder-badge {
-            background: #f1f1f1;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 14px;
-            display: inline-block;
-            margin: 10px 0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Movie Identifier App</title>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <h1>🎬 MOVIE DETECTOR</h1>
-    <div class="founder-badge">Founder: {{ founder.name }}</div>
+  <div class="container">
+    <h1>🎬 Movie Screenshot Identifier</h1>
 
-    <div class="tab-container">
-        <div class="tab active" onclick="switchTab('link')">🔗 Link Detector</div>
-        <div class="tab" onclick="switchTab('screenshot')">🖼️ Screenshot Detector</div>
-    </div>
+    <form action="/identify" method="POST" enctype="multipart/form-data">
+      <input type="file" name="screenshot" accept="image/*" required>
+      <button type="submit">Identify Movie</button>
+    </form>
 
-    <!-- Link Detector -->
-    <div id="link-tab" class="tab-content active">
-        <input type="text" id="mediaUrl" placeholder="Paste YouTube/TikTok link...">
-        <button onclick="analyzeUrl()">Detect Movie</button>
-    </div>
-
-    <!-- Screenshot Detector -->
-    <div id="screenshot-tab" class="tab-content">
-        <input type="file" id="mediaFile" accept="image/*">
-        <button onclick="analyzeScreenshot()">Identify Movie</button>
-    </div>
-
-    <!-- Results -->
-    <div id="results" style="margin-top: 30px;"></div>
-
-    <script>
-    function switchTab(tabName) {
-        document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-        event.currentTarget.classList.add('active');
-        document.getElementById(`${tabName}-tab`).classList.add('active');
-    }
-
-    async function analyzeUrl() {
-        const url = document.getElementById('mediaUrl').value;
-        const response = await fetch('/detect', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: new URLSearchParams({ url })
-        });
-        showResults(await response.json());
-    }
-
-    async function analyzeScreenshot() {
-        const file = document.getElementById('mediaFile').files[0];
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('/detect', {
-            method: 'POST',
-            body: formData
-        });
-        showResults(await response.json());
-    }
-
-    function showResults(data) {
-        if (data.error) {
-            document.getElementById('results').innerHTML = `
-                <div style="color: red">Error: ${data.error}</div>
-            `;
-            return;
-        }
-
-        document.getElementById('results').innerHTML = `
-            <div style="border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
-                <h2>${data.title} (${data.year})</h2>
-                <p>${data.synopsis}</p>
-                <h3>Where to Watch:</h3>
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <a href="/watch/prime/${encodeURIComponent(data.title)}" 
-                       style="padding: 8px 12px; background: #00A8E1; color: white; text-decoration: none; border-radius: 4px;">
-                        Prime Video
-                    </a>
-                    <a href="/watch/youtube/${encodeURIComponent(data.title)}" 
-                       style="padding: 8px 12px; background: #FF0000; color: white; text-decoration: none; border-radius: 4px;">
-                        YouTube
-                    </a>
-                    <a href="/watch/google/${encodeURIComponent(data.title)}" 
-                       style="padding: 8px 12px; background: #4285F4; color: white; text-decoration: none; border-radius: 4px;">
-                        Google Search
-                    </a>
-                </div>
-            </div>
-        `;
-    }
-    </script>
+    {% if result %}
+      <div class="result">
+        <h2>🎥 {{ result.title }}</h2>
+        <p><strong>Synopsis:</strong> {{ result.synopsis }}</p>
+        <p><strong>Watch here:</strong></p>
+        <ul>
+          {% for link in result.links %}
+            <li><a href="{{ link.url }}" target="_blank">{{ link.platform }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
 </body>
 </html>
