@@ -7,3 +7,6 @@ Pillow
 beautifulsoup4
 google-api-python-client
 youtube-search-python
+gunicorn
+youtube-search-python
+numpy
