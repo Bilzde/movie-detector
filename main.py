@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, jsonify
 import os
 import re
 import requests
+import json
 from werkzeug.utils import secure_filename
 from google.cloud import vision
 import tempfile
@@ -48,6 +49,16 @@ def analyze_image(file_path):
         labels = [label.description for label in response.label_annotations]
         return " ".join(labels[:3])
 
+def clean_title(title):
+    """Clean extracted title"""
+    # Remove common video platform suffixes
+    title = re.sub(r'\s*-\s*(YouTube|TikTok).*$', '', title)
+    return title.strip()
+
+def get_streaming_providers(movie_id):
+    """Get streaming providers (placeholder)"""
+    return []
+
 def get_movie_data(query):
     """Fetch movie info from TMDB"""
     url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={query}"
@@ -57,7 +68,7 @@ def get_movie_data(query):
         movie = response['results'][0]
         return {
             'title': movie['title'],
-            'year': movie['release_date'][:4],
+            'year': movie['release_date'][:4] if movie.get('release_date') else 'Unknown',
             'synopsis': movie['overview'],
             'providers': get_streaming_providers(movie['id'])
         }
