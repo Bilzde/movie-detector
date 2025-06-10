@@ -19,7 +19,7 @@ app.config['FOUNDER'] = {
 
 # APIs (set these in Replit secrets)
 TMDB_API_KEY = os.environ.get('TMDB_API_KEY')
-GOOGLE_CREDS = json.loads(os.environ.get('GOOGLE_CREDENTIALS_JSON'))
+GOOGLE_CREDS_JSON = os.environ.get('GOOGLE_CREDENTIALS_JSON')
 
 # ===== CORE FUNCTIONALITY =====
 def analyze_url(url):
@@ -33,21 +33,38 @@ def analyze_url(url):
 
 def analyze_image(file_path):
     """Identify movie from screenshot"""
-    client = vision.ImageAnnotatorClient.from_service_account_json(GOOGLE_CREDS)
+    if not GOOGLE_CREDS_JSON:
+        return None
+        
+    # Write credentials to temporary file
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        f.write(GOOGLE_CREDS_JSON)
+        creds_file = f.name
+    
+    try:
+        client = vision.ImageAnnotatorClient.from_service_account_json(creds_file)
 
-    with open(file_path, 'rb') as f:
-        image = vision.Image(content=f.read())
+        with open(file_path, 'rb') as f:
+            image = vision.Image(content=f.read())
 
-    response = client.web_detection(image=image)
+        # Get labels first
+        response = client.label_detection(image=image)
+        
+        # Try web detection
+        web_response = client.web_detection(image=image)
 
-    # Try multiple detection methods
-    if response.web_detection.pages_with_matching_images:
-        return response.web_detection.pages_with_matching_images[0].url
-    elif response.web_detection.visually_similar_images:
-        return response.web_detection.visually_similar_images[0].url
-    else:
-        labels = [label.description for label in response.label_annotations]
-        return " ".join(labels[:3])
+        # Try multiple detection methods
+        if web_response.web_detection.pages_with_matching_images:
+            return web_response.web_detection.pages_with_matching_images[0].page_title
+        elif web_response.web_detection.web_entities:
+            return web_response.web_detection.web_entities[0].description
+        else:
+            labels = [label.description for label in response.label_annotations[:3]]
+            return " ".join(labels)
+    finally:
+        # Clean up temp file
+        os.unlink(creds_file)
 
 def clean_title(title):
     """Clean extracted title"""
@@ -111,4 +128,4 @@ def watch(platform, query):
     return redirect(links.get(platform, links['google']))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=5000)
